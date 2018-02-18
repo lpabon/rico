@@ -93,6 +93,11 @@ func (m *Manager) SetConfig(config *config.Config) {
 	m.config = *config
 }
 
+func (m *Manager) Config() *config.Config {
+	c := m.config
+	return &c
+}
+
 // TODO:
 // Create a simple example of a loop outside this package
 func (m *Manager) eventloop(started chan<- bool) {
@@ -111,6 +116,10 @@ func (m *Manager) eventloop(started chan<- bool) {
 			}
 		}
 	}
+}
+
+func (m *Manager) Reconcile() error {
+	return m.do()
 }
 
 func (m *Manager) do() error {
@@ -136,16 +145,16 @@ func (m *Manager) do() error {
 			totalStorage+class.DiskSizeGb <= class.MaximumTotalSizeGb) ||
 			totalStorage < class.MinimumTotalSizeGb {
 			dlog.Infof("Adding storage")
-			return m.addStorage(t, &class)
-		}
-
-		if (utilization <= class.WatermarkLow &&
+			m.addStorage(t, &class)
+		} else if (utilization <= class.WatermarkLow &&
 			totalStorage-class.DiskSizeGb >= class.MinimumTotalSizeGb) ||
 			totalStorage > class.MaximumTotalSizeGb {
 			dlog.Infof("remove storage")
 			return m.removeStorage(t, &class)
+		} else {
+			dlog.Infof("No change")
+
 		}
-		dlog.Infof("No change")
 	}
 	return nil
 }

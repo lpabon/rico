@@ -18,6 +18,8 @@ limitations under the License.
 package fake
 
 import (
+	"fmt"
+
 	"github.com/libopenstorage/rico/pkg/config"
 	"github.com/libopenstorage/rico/pkg/storageprovider"
 	"github.com/lpabon/godbc"
@@ -47,20 +49,24 @@ func (f *Fake) GetTopology() (*storageprovider.Topology, error) {
 
 // SetUtilization sets all the nodes to the specified utilization
 func (f *Fake) SetUtilization(
+	class *config.Class,
 	utilization int,
 ) {
 	for _, n := range f.Topology.Cluster.StorageNodes {
-		f.SetNodeUtilization(n, utilization)
+		f.SetNodeUtilization(n, class, utilization)
 	}
 }
 
 // SetNodeUtilization sets all the devices to a utilization
 func (f *Fake) SetNodeUtilization(
 	node *storageprovider.StorageNode,
+	class *config.Class,
 	utilization int,
 ) {
 	for _, d := range node.Devices {
-		d.Utilization = utilization
+		if d.Class == class.Name {
+			d.Utilization = utilization
+		}
 	}
 }
 
@@ -88,6 +94,7 @@ func (f *Fake) DeviceAdd(
 
 func (f *Fake) NodeAdd(node *storageprovider.StorageNode) error {
 	f.Topology.Cluster.StorageNodes = append(f.Topology.Cluster.StorageNodes, node)
+	return nil
 }
 
 func (f *Fake) NodeDelete(instanceID string) error {
@@ -102,13 +109,12 @@ func (f *Fake) NodeDelete(instanceID string) error {
 		}
 	}
 
-	if found {
-		nodes[index] = nodes[len(nodes)-1]
-		nodes = nodes[:len(nodes)-1]
-		return nil
-	} else {
+	if !found {
 		return fmt.Errorf("Instance %s not found", instanceID)
 	}
+	nodes[index] = nodes[len(nodes)-1]
+	nodes = nodes[:len(nodes)-1]
+	return nil
 }
 
 // DeviceRemove removes a device from the topology

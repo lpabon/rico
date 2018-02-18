@@ -31,14 +31,28 @@ import (
 // across the entire cluster.
 func (t *Topology) Utilization(class *config.Class) int {
 	sum := 0
+	num := 0
 	for _, node := range t.Cluster.StorageNodes {
-		sum += node.Utilization(class)
+		s, n := node.RawUtilization(class)
+		sum += s
+		num += n
 	}
 	// TODO Check for DivZero
-	return int(sum / len(t.Cluster.StorageNodes))
+	if num == 0 {
+		return 0
+	}
+	return int(sum / num)
 }
 
 func (n *StorageNode) Utilization(class *config.Class) int {
+	sum, num := n.RawUtilization(class)
+	if num == 0 {
+		return 0
+	}
+	return int(sum / num)
+}
+
+func (n *StorageNode) RawUtilization(class *config.Class) (int, int) {
 	sum, num := 0, 0
 	if len(n.Pools) != 0 {
 		for _, pool := range n.Pools {
@@ -55,10 +69,7 @@ func (n *StorageNode) Utilization(class *config.Class) int {
 			}
 		}
 	}
-	if num == 0 {
-		return 0
-	}
-	return int(sum / num)
+	return sum, num
 }
 
 // TODO: Make Size an explicit type as int64
@@ -119,7 +130,7 @@ func (t *Topology) DetermineStorageToRemove(
 		return nil, nil, nil
 	}
 
-// BUG: Pool needs to check the class
+	// BUG: Pool needs to check the class
 	if len(node.Pools) != 0 {
 		for _, currentpool := range node.Pools {
 			if pool == nil {
@@ -196,7 +207,6 @@ func (n *StorageNode) Verify() error {
 	return nil
 }
 
-
 // TODO: DeviceInPool
 func (n *StorageNode) DevicesOnPool(p *Pool) []*Device {
 	devices := make([]*Device, 0)
@@ -235,4 +245,28 @@ func (t *Topology) NumDevices() int {
 		devices += len(n.Devices)
 	}
 	return devices
+}
+
+func (t *Topology) String(config *config.Config) string {
+	s := fmt.Sprintf("TOPOLOGY\n")
+	for _, class := range config.Classes {
+		s += fmt.Sprintf("C[%s|%d] ", class.Name, t.Utilization(&class))
+	}
+	s += "\n"
+	for _, node := range t.Cluster.StorageNodes {
+		s += node.String()
+	}
+	return s
+}
+
+func (n *StorageNode) String() string {
+	s := fmt.Sprintf("N[%s]: ", n.Metadata.ID)
+	for _, device := range n.Devices {
+		s += device.String()
+	}
+	return s + "\n"
+}
+
+func (d *Device) String() string {
+	return fmt.Sprintf("D[%dGi|%d] ", d.Size, d.Utilization)
 }
