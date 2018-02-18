@@ -86,6 +86,31 @@ func (f *Fake) DeviceAdd(
 	return nil
 }
 
+func (f *Fake) NodeAdd(node *storageprovider.StorageNode) error {
+	f.Topology.Cluster.StorageNodes = append(f.Topology.Cluster.StorageNodes, node)
+}
+
+func (f *Fake) NodeDelete(instanceID string) error {
+	index := 0
+	found := false
+	nodes := f.Topology.Cluster.StorageNodes
+	for i, node := range nodes {
+		if node.Metadata.ID == instanceID {
+			found = true
+			index = i
+			break
+		}
+	}
+
+	if found {
+		nodes[index] = nodes[len(nodes)-1]
+		nodes = nodes[:len(nodes)-1]
+		return nil
+	} else {
+		return fmt.Errorf("Instance %s not found", instanceID)
+	}
+}
+
 // DeviceRemove removes a device from the topology
 func (f *Fake) DeviceRemove(
 	node *storageprovider.StorageNode,
