@@ -152,14 +152,7 @@ func main() {
 		Aliases: []string{"c", "classes"},
 		Func: func(c *ishell.Context) {
 			for _, class := range configuration.Classes {
-				c.Printf("%s: Max:%d Min:%d Size:%d WH:%d WL:%d Params:%v\n",
-					class.Name,
-					class.MaximumTotalSizeGb,
-					class.MinimumTotalSizeGb,
-					class.DiskSizeGb,
-					class.WatermarkHigh,
-					class.WatermarkLow,
-					class.Parameters)
+				c.Printf("%v\n", class)
 			}
 		},
 		Help: "List classes",
@@ -205,11 +198,22 @@ func main() {
 		Name:    "class-add",
 		Aliases: []string{"ca"},
 		Func: func(c *ishell.Context) {
+			if len(c.Args) < 6 {
+				c.Err(fmt.Errorf("Missing arguments: " +
+					"ca name=<name> " +
+					"wh=<watermark high> " +
+					"wl=<watermark low> " +
+					"size=<disk size Gi> " +
+					"max=<total max size Gi> " +
+					"min=<total min size Gi>"))
+				return
+			}
 			newClass := config.Class{}
 			for _, param := range c.Args {
 				kv := strings.Split(strings.ToLower(param), "=")
 				if len(kv) != 2 {
-					fmt.Printf("Bad param: %s\n", param)
+					c.Err(fmt.Errorf("Bad param: %s\n", param))
+					return
 				}
 				switch kv[0] {
 				case "name":
@@ -218,36 +222,60 @@ func main() {
 					i, err := strconv.Atoi(kv[1])
 					if err != nil {
 						c.Err(err)
+						return
 					}
 					newClass.WatermarkHigh = i
 				case "wl":
 					i, err := strconv.Atoi(kv[1])
 					if err != nil {
 						c.Err(err)
+						return
 					}
 					newClass.WatermarkLow = i
 				case "size":
 					i, err := strconv.ParseInt(kv[1], 10, 64)
 					if err != nil {
 						c.Err(err)
+						return
 					}
 					newClass.DiskSizeGb = i
 				case "max":
 					i, err := strconv.ParseInt(kv[1], 10, 64)
 					if err != nil {
 						c.Err(err)
+						return
 					}
 					newClass.MaximumTotalSizeGb = i
 				case "min":
 					i, err := strconv.ParseInt(kv[1], 10, 64)
 					if err != nil {
 						c.Err(err)
+						return
 					}
 					newClass.MinimumTotalSizeGb = i
 				default:
 					c.Err(fmt.Errorf("Unknown key: %s", kv[0]))
+					return
 				}
 			}
+			if len(newClass.Name) == 0 {
+				c.Err(fmt.Errorf("Name missing: name=<name>"))
+				return
+			}
+			if newClass.WatermarkHigh == 0 || newClass.WatermarkLow == 0 {
+				c.Err(fmt.Errorf("Watermarks missing: wh=<int> wl=<int>"))
+				return
+			}
+			if newClass.MinimumTotalSizeGb == 0 || newClass.MaximumTotalSizeGb == 0 {
+				c.Err(fmt.Errorf("Max or min missing: max=<int> min=<int>"))
+				return
+			}
+			if newClass.DiskSizeGb == 0 {
+				c.Err(fmt.Errorf("Size missing: size=<int>"))
+				return
+			}
+			configuration.Classes = append(configuration.Classes, newClass)
+			im.SetConfig(configuration)
 			c.Println("OK")
 		},
 		Help: "Add class",
