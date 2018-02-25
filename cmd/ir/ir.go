@@ -23,12 +23,14 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/abiosoft/ishell"
 	"github.com/libopenstorage/rico/pkg/cloudprovider"
 	"github.com/libopenstorage/rico/pkg/config"
 	"github.com/libopenstorage/rico/pkg/inframanager"
 	"github.com/libopenstorage/rico/pkg/storageprovider"
 	"github.com/libopenstorage/rico/pkg/storageprovider/fake"
+
+	"github.com/abiosoft/ishell"
+	"github.com/pborman/uuid"
 )
 
 type FakeCloud struct{}
@@ -39,7 +41,7 @@ func (f *FakeCloud) DeviceCreate(
 	class *config.Class,
 ) (*cloudprovider.Device, error) {
 	return &cloudprovider.Device{
-		ID:   "nothing",
+		ID:   uuid.New(),
 		Path: "nothing",
 		Size: class.DiskSizeGb,
 	}, nil

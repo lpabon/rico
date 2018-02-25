@@ -20,8 +20,7 @@ import (
 	"fmt"
 	"sync"
 
-	"go.pedge.io/dlog"
-
+	"github.com/libopenstorage/logrus"
 	"github.com/libopenstorage/rico/pkg/cloudprovider"
 	"github.com/libopenstorage/rico/pkg/config"
 	"github.com/libopenstorage/rico/pkg/storageprovider"
@@ -51,42 +50,6 @@ func NewManager(
 	}
 }
 
-// Start starts the eventloop
-func (m *Manager) Start() error {
-	m.lock.Lock()
-	defer m.lock.Unlock()
-
-	if m.running {
-		return fmt.Errorf("already running")
-	}
-
-	m.running = true
-	m.quit = make(chan struct{})
-
-	// Start the eventloop
-	started := make(chan bool)
-	go m.eventloop(started)
-	<-started
-	return nil
-}
-
-// Stop stops the eventloop
-func (m *Manager) Stop() {
-	m.lock.Lock()
-	defer m.lock.Unlock()
-
-	close(m.quit)
-	m.running = false
-}
-
-// IsRunning returns true if the eventloop is running
-func (m *Manager) IsRunning() bool {
-	m.lock.Lock()
-	defer m.lock.Unlock()
-
-	return m.running
-}
-
 // SetConfig saves a new configuration value
 func (m *Manager) SetConfig(config *config.Config) {
 	// TODO - LOCK
@@ -96,26 +59,6 @@ func (m *Manager) SetConfig(config *config.Config) {
 func (m *Manager) Config() *config.Config {
 	c := m.config
 	return &c
-}
-
-// TODO:
-// Create a simple example of a loop outside this package
-func (m *Manager) eventloop(started chan<- bool) {
-	dlog.Infoln("Started loop")
-	started <- true
-
-	// Wait to be told when to reconcile
-	for {
-		select {
-		case <-m.quit:
-			dlog.Infoln("Stopped loop")
-			return
-		case <-m.reconcile:
-			if err := m.do(); err != nil {
-				dlog.Errorln("%v", err)
-			}
-		}
-	}
 }
 
 func (m *Manager) Reconcile() error {
@@ -144,16 +87,13 @@ func (m *Manager) do() error {
 		if (utilization >= class.WatermarkHigh &&
 			totalStorage+class.DiskSizeGb <= class.MaximumTotalSizeGb) ||
 			totalStorage < class.MinimumTotalSizeGb {
-			dlog.Infof("Adding storage")
 			m.addStorage(t, &class)
 		} else if (utilization <= class.WatermarkLow &&
 			totalStorage-class.DiskSizeGb >= class.MinimumTotalSizeGb) ||
 			totalStorage > class.MaximumTotalSizeGb {
-			dlog.Infof("remove storage")
 			return m.removeStorage(t, &class)
 		} else {
-			dlog.Infof("No change")
-
+			logrus.Infof("class:%s No change", class.Name)
 		}
 	}
 	return nil
@@ -170,6 +110,11 @@ func (m *Manager) addStorage(t *storageprovider.Topology, class *config.Class) e
 	// Add disks to the node
 	devices := make([]*storageprovider.Device, 0)
 	for d := 0; d < numDisks; d++ {
+		logrus.Infof("class:%s Creating/attaching storage %d of %d to node:%s",
+			class.Name,
+			d,
+			numDisks,
+			node.Metadata.ID)
 		// Create and attach a disk to the node
 		device, err := m.cloud.DeviceCreate(node.Metadata.ID, class)
 		if err != nil {
@@ -188,6 +133,10 @@ func (m *Manager) addStorage(t *storageprovider.Topology, class *config.Class) e
 
 	// Notify storage system device has been added
 	// TODO: Clean up on error
+	logrus.Infof("class:%s Notifying storage system addition of %d to node:%s",
+		class.Name,
+		numDisks,
+		node.Metadata.ID)
 	return m.storage.DeviceAdd(node, p, devices)
 }
 
@@ -197,11 +146,16 @@ func (m *Manager) removeStorage(t *storageprovider.Topology, class *config.Class
 
 	// Nothing to do
 	if device == nil {
-		dlog.Infof("No device found to remove")
+		logrus.Infof("class:%s No device found to remove", class.Name)
 		return nil
 	}
 
 	// Remove drive from the storage system
+	logrus.Infof("class:%s Removing device %s/%s:%s from storage",
+		class.Name,
+		node.Metadata.ID,
+		device.Path,
+		device.Metadata.ID)
 	cloudDevices, err := m.storage.DeviceRemove(node, pool, device)
 	if err != nil {
 		return err
@@ -210,10 +164,15 @@ func (m *Manager) removeStorage(t *storageprovider.Topology, class *config.Class
 	// Delete cloud drive
 	var deleteErr error
 	for _, d := range cloudDevices {
+		logrus.Infof("class:%s Detaching/deleting device %s/%s:%s from storage",
+			class.Name,
+			node.Metadata.ID,
+			d.Path,
+			d.Metadata.ID)
 		err = m.cloud.DeviceDelete(node.Metadata.ID, device.Metadata.ID)
 		if err != nil {
 			deleteErr = err
-			dlog.Errorf("Failed to remove cloud device %s: %v",
+			logrus.Errorf("Failed to remove cloud device %s: %v",
 				d.Metadata.ID, err)
 		}
 	}
