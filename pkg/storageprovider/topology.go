@@ -110,49 +110,47 @@ func (t *Topology) DetermineStorageToRemove(
 	class *config.Class,
 ) (*StorageNode, *Pool, *Device) {
 	var (
-		node    *StorageNode
-		device  *Device
-		pool    *Pool
-		devices []*Device
+		node   *StorageNode
+		device *Device
+		pool   *Pool
 	)
 
 	// Get the node
 	for _, currentNode := range t.Cluster.StorageNodes {
-		if len(currentNode.Devices) == 0 {
+		devices := currentNode.DevicesForClass(class)
+		if len(devices) == 0 {
 			continue
 		}
-		if node == nil ||
-			currentNode.Utilization(class) < node.Utilization(class) {
-			node = currentNode
-		}
-	}
-	if node == nil {
-		return nil, nil, nil
-	}
 
-	// BUG: Pool needs to check the class
-	if len(node.Pools) != 0 {
-		for _, currentpool := range node.Pools {
-			if pool == nil {
-				pool = currentpool
-			} else if currentpool.Utilization < pool.Utilization {
-				pool = currentpool
+		/*
+			// Check pools on this node
+			if len(node.Pools) != 0 {
+				for _, currentpool := range node.Pools {
+					if currentpool.Class == class.Name {
+						if pool == nil || currentpool.Utilization < pool.Utilization {
+							pool = currentpool
+						}
+					}
+				}
+
+				// Pick devices in the pull
+				devices = node.DevicesOnPool(pool)
+			} else {
+				pool = nil
+			}
+		*/
+
+		for _, currentDevice := range devices {
+			if device == nil ||
+				currentDevice.Utilization < device.Utilization {
+				node = currentNode
+				device = currentDevice
 			}
 		}
 
-		// Pick devices in the pull
-		devices = node.DevicesOnPool(pool)
-	} else {
-		devices = node.Devices
 	}
-
-	// Pick ONE drive, let the storage system figure out if it needs to
-	// remove more
-	for _, currentDevice := range devices {
-		if device == nil ||
-			currentDevice.Utilization < device.Utilization {
-			device = currentDevice
-		}
+	if node == nil {
+		return nil, nil, nil
 	}
 
 	return node, pool, device
@@ -210,9 +208,11 @@ func (n *StorageNode) Verify() error {
 // TODO: DeviceInPool
 func (n *StorageNode) DevicesOnPool(p *Pool) []*Device {
 	devices := make([]*Device, 0)
-	for _, device := range n.Devices {
-		if device.Pool == p.Name {
-			devices = append(devices, device)
+	if p != nil {
+		for _, device := range n.Devices {
+			if device.Pool == p.Name {
+				devices = append(devices, device)
+			}
 		}
 	}
 
@@ -267,6 +267,18 @@ func (n *StorageNode) String() string {
 	return s + "\n"
 }
 
+func (n *StorageNode) DevicesForClass(class *config.Class) []*Device {
+	devices := make([]*Device, len(n.Devices))
+	num := 0
+	for _, device := range n.Devices {
+		if device.Class == class.Name {
+			num++
+			devices = append(devices, device)
+		}
+	}
+	return devices[:num]
+}
+
 func (d *Device) String() string {
-	return fmt.Sprintf("D[%dGi|%d] ", d.Size, d.Utilization)
+	return fmt.Sprintf("D[%s|%dGi|%d] ", d.Class, d.Size, d.Utilization)
 }
