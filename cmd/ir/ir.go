@@ -132,14 +132,17 @@ func main() {
 		Name:    "topology",
 		Aliases: []string{"t"},
 		Func: func(c *ishell.Context) {
-			c.Println("TOPOLOGY")
 			t, _ := fs.GetTopology()
+			c.Println("TOPOLOGY")
+			c.Printf("Nodes: %d\n", len(t.Cluster.StorageNodes))
+			c.Printf("Devices: %d\n", t.NumDevices())
 			for _, class := range im.Config().Classes {
 				c.Printf("C[%s|%dGi|%d] ",
 					class.Name,
 					t.TotalStorage(&class),
 					t.Utilization(&class))
 			}
+			c.Println("")
 			c.Println(t)
 		},
 		Help: "Show storage topoology",

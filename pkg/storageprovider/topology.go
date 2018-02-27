@@ -253,7 +253,9 @@ func (t *Topology) String() string {
 }
 
 func (n *StorageNode) String() string {
-	s := fmt.Sprintf("N[%s]: ", n.Metadata.ID)
+	s := fmt.Sprintf("N[%s|%d]: ",
+		n.Metadata.ID,
+		len(n.Devices))
 	for _, device := range n.Devices {
 		s += device.String()
 	}
