@@ -24,6 +24,7 @@ package storageprovider
 import (
 	"fmt"
 
+	"github.com/libopenstorage/logrus"
 	"github.com/libopenstorage/rico/pkg/config"
 )
 
@@ -119,26 +120,10 @@ func (t *Topology) DetermineStorageToRemove(
 	for _, currentNode := range t.Cluster.StorageNodes {
 		devices := currentNode.DevicesForClass(class)
 		if len(devices) == 0 {
+			logrus.Infof("no devices found for class %s in node %s",
+				class.Name, currentNode.Metadata.ID)
 			continue
 		}
-
-		/*
-			// Check pools on this node
-			if len(node.Pools) != 0 {
-				for _, currentpool := range node.Pools {
-					if currentpool.Class == class.Name {
-						if pool == nil || currentpool.Utilization < pool.Utilization {
-							pool = currentpool
-						}
-					}
-				}
-
-				// Pick devices in the pull
-				devices = node.DevicesOnPool(pool)
-			} else {
-				pool = nil
-			}
-		*/
 
 		for _, currentDevice := range devices {
 			if device == nil ||
@@ -147,6 +132,23 @@ func (t *Topology) DetermineStorageToRemove(
 				device = currentDevice
 			}
 		}
+
+		/*
+			// Check pools on this node
+			if len(currentNode.Pools) != 0 {
+				for _, currentpool := range node.Pools {
+					if currentpool.Class == class.Name {
+						if pool == nil ||
+							currentpool.Utilization < pool.Utilization {
+							pool = currentpool
+						}
+					}
+				}
+
+				// Pick devices in the pull
+				devices = node.DevicesOnPool(pool)
+			}
+		*/
 
 	}
 	if node == nil {
