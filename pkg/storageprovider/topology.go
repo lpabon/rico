@@ -24,7 +24,6 @@ package storageprovider
 import (
 	"fmt"
 
-	"github.com/libopenstorage/logrus"
 	"github.com/libopenstorage/rico/pkg/config"
 )
 
@@ -120,9 +119,22 @@ func (t *Topology) DetermineStorageToRemove(
 	for _, currentNode := range t.Cluster.StorageNodes {
 		devices := currentNode.DevicesForClass(class)
 		if len(devices) == 0 {
-			logrus.Infof("no devices found for class %s in node %s",
-				class.Name, currentNode.Metadata.ID)
 			continue
+		}
+
+		// Check pools on this node
+		if len(currentNode.Pools) != 0 {
+			for _, currentpool := range node.Pools {
+				if currentpool.Class == class.Name {
+					if pool == nil ||
+						currentpool.Utilization < pool.Utilization {
+						pool = currentpool
+					}
+				}
+			}
+
+			// Pick devices in the pull
+			devices = node.DevicesOnPool(pool)
 		}
 
 		for _, currentDevice := range devices {
@@ -132,23 +144,6 @@ func (t *Topology) DetermineStorageToRemove(
 				device = currentDevice
 			}
 		}
-
-		/*
-			// Check pools on this node
-			if len(currentNode.Pools) != 0 {
-				for _, currentpool := range node.Pools {
-					if currentpool.Class == class.Name {
-						if pool == nil ||
-							currentpool.Utilization < pool.Utilization {
-							pool = currentpool
-						}
-					}
-				}
-
-				// Pick devices in the pull
-				devices = node.DevicesOnPool(pool)
-			}
-		*/
 
 	}
 	if node == nil {
@@ -249,12 +244,8 @@ func (t *Topology) NumDevices() int {
 	return devices
 }
 
-func (t *Topology) String(config *config.Config) string {
-	s := fmt.Sprintf("TOPOLOGY\n")
-	for _, class := range config.Classes {
-		s += fmt.Sprintf("C[%s|%d] ", class.Name, t.Utilization(&class))
-	}
-	s += "\n"
+func (t *Topology) String() string {
+	s := ""
 	for _, node := range t.Cluster.StorageNodes {
 		s += node.String()
 	}
@@ -270,15 +261,13 @@ func (n *StorageNode) String() string {
 }
 
 func (n *StorageNode) DevicesForClass(class *config.Class) []*Device {
-	devices := make([]*Device, len(n.Devices))
-	num := 0
+	devices := make([]*Device, 0)
 	for _, device := range n.Devices {
 		if device.Class == class.Name {
-			num++
 			devices = append(devices, device)
 		}
 	}
-	return devices[:num]
+	return devices
 }
 
 func (d *Device) String() string {

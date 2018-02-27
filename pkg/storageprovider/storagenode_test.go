@@ -18,10 +18,10 @@ limitations under the License.
 package storageprovider
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/libopenstorage/rico/pkg/config"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestStorageNodeDetermineStorageToRemove(t *testing.T) {
@@ -42,21 +42,21 @@ func TestStorageNodeDetermineStorageToRemove(t *testing.T) {
 						},
 						&Device{
 							Class:       "c1",
-							Utilization: 30,
+							Utilization: 1,
 							Metadata: DeviceMetadata{
 								ID: "d2",
 							},
 						},
 						&Device{
 							Class:       "c2",
-							Utilization: 30,
+							Utilization: 4,
 							Metadata: DeviceMetadata{
 								ID: "d3",
 							},
 						},
 						&Device{
 							Class:       "c2",
-							Utilization: 30,
+							Utilization: 3,
 							Metadata: DeviceMetadata{
 								ID: "d4",
 							},
@@ -66,6 +66,41 @@ func TestStorageNodeDetermineStorageToRemove(t *testing.T) {
 				&StorageNode{
 					Metadata: InstanceMetadata{
 						ID: "two",
+					},
+					Devices: []*Device{
+						&Device{
+							Class:       "c3",
+							Utilization: 3,
+							Metadata: DeviceMetadata{
+								ID: "d1",
+							},
+						},
+						&Device{
+							Class:       "c3",
+							Utilization: 3,
+							Metadata: DeviceMetadata{
+								ID: "d2",
+							},
+						},
+						&Device{
+							Class:       "c3",
+							Utilization: 3,
+							Metadata: DeviceMetadata{
+								ID: "d3",
+							},
+						},
+						&Device{
+							Class:       "c3",
+							Utilization: 3,
+							Metadata: DeviceMetadata{
+								ID: "d4",
+							},
+						},
+					},
+				},
+				&StorageNode{
+					Metadata: InstanceMetadata{
+						ID: "three",
 					},
 					Devices: []*Device{
 						&Device{
@@ -105,6 +140,9 @@ func TestStorageNodeDetermineStorageToRemove(t *testing.T) {
 	n, p, d := topology.DetermineStorageToRemove(&config.Class{
 		Name: "c2",
 	})
-	fmt.Printf("%s %s %s", n, p, d)
-
+	assert.NotNil(t, n)
+	assert.Equal(t, "one", n.Metadata.ID)
+	assert.Nil(t, p)
+	assert.NotNil(t, d)
+	assert.Equal(t, "d4", d.Metadata.ID)
 }
