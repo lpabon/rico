@@ -39,6 +39,7 @@ func (t *Topology) Utilization(class *config.Class) int {
 	return int(sum / num)
 }
 
+// TotalStorage returns the total storage in a topology allocated by a certain class
 // TODO: Make Size an explicit type as int64
 func (t *Topology) TotalStorage(class *config.Class) int64 {
 	total := int64(0)
@@ -125,6 +126,7 @@ func (t *Topology) Verify() error {
 	return nil
 }
 
+// NumDevices returns the total number of devices in the topolgy
 func (t *Topology) NumDevices() int {
 	devices := 0
 	for _, n := range t.Cluster.StorageNodes {
@@ -133,6 +135,7 @@ func (t *Topology) NumDevices() int {
 	return devices
 }
 
+// String returns a string representation of the topology for fmt.Printf
 func (t *Topology) String() string {
 	s := ""
 	for _, node := range t.Cluster.StorageNodes {

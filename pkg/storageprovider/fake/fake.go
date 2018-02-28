@@ -92,11 +92,13 @@ func (f *Fake) DeviceAdd(
 	return nil
 }
 
+// NodeAdd adds a new node to the topology
 func (f *Fake) NodeAdd(node *topology.StorageNode) error {
 	f.Topology.Cluster.StorageNodes = append(f.Topology.Cluster.StorageNodes, node)
 	return nil
 }
 
+// NodeDelete removes a node and all its devices from the topology
 func (f *Fake) NodeDelete(instanceID string) error {
 	index := 0
 	found := false

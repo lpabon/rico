@@ -23,14 +23,18 @@ import (
 	"github.com/pborman/uuid"
 )
 
+// Fake is an in-memory fake cloud provider
 type Fake struct{}
 
+// New returns a new Fake cloud provider
 func New() *Fake {
 	return &Fake{}
 }
 
+// SetConfig does nothing
 func (f *Fake) SetConfig(config *config.Config) {}
 
+// DeviceCreate returns a new device with a new uuid
 func (f *Fake) DeviceCreate(
 	instanceID string,
 	class *config.Class,
@@ -42,6 +46,7 @@ func (f *Fake) DeviceCreate(
 	}, nil
 }
 
+// DeviceDelete does nothing
 func (f *Fake) DeviceDelete(instanceID string, deviceID string) error {
 	return nil
 }

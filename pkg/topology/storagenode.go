@@ -22,6 +22,7 @@ import (
 	"github.com/libopenstorage/rico/pkg/config"
 )
 
+// Utilization returns the average utilization of the storage node
 func (n *StorageNode) Utilization(class *config.Class) int {
 	sum, num := n.RawUtilization(class)
 	if num == 0 {
@@ -30,6 +31,7 @@ func (n *StorageNode) Utilization(class *config.Class) int {
 	return int(sum / num)
 }
 
+// RawUtilization returns the sumation of all utilizations in the node and the number of devices
 func (n *StorageNode) RawUtilization(class *config.Class) (int, int) {
 	sum, num := 0, 0
 	if len(n.Pools) != 0 {
@@ -50,6 +52,7 @@ func (n *StorageNode) RawUtilization(class *config.Class) (int, int) {
 	return sum, num
 }
 
+// TotalStorage returns the total storage allocated for a specific class
 func (n *StorageNode) TotalStorage(class *config.Class) int64 {
 	total := int64(0)
 	for _, d := range n.Devices {
@@ -60,8 +63,9 @@ func (n *StorageNode) TotalStorage(class *config.Class) int64 {
 	return total
 }
 
-// Rename Function
-func (n *StorageNode) NumDisks(class *config.Class) (int, *Pool) {
+// SetSizeForClass returns the number of disks needed to be added to a
+// pool for a type of class
+func (n *StorageNode) SetSizeForClass(class *config.Class) (int, *Pool) {
 	var (
 		numDisks int
 		p        *Pool
@@ -76,6 +80,7 @@ func (n *StorageNode) NumDisks(class *config.Class) (int, *Pool) {
 	return numDisks, p
 }
 
+// Verify returns an error if any data is missing from the StorageNode
 func (n *StorageNode) Verify() error {
 	if len(n.Metadata.ID) == 0 {
 		return fmt.Errorf("Node missing instance metadata id")
@@ -94,7 +99,7 @@ func (n *StorageNode) Verify() error {
 	return nil
 }
 
-// TODO: DeviceInPool
+// DevicesOnPool returns a list of devices on a specific pool
 func (n *StorageNode) DevicesOnPool(p *Pool) []*Device {
 	devices := make([]*Device, 0)
 	if p != nil {
@@ -108,16 +113,7 @@ func (n *StorageNode) DevicesOnPool(p *Pool) []*Device {
 	return devices
 }
 
-func (n *StorageNode) String() string {
-	s := fmt.Sprintf("N[%s|%d]: ",
-		n.Metadata.ID,
-		len(n.Devices))
-	for _, device := range n.Devices {
-		s += device.String()
-	}
-	return s + "\n"
-}
-
+// DevicesForClass returns a list of devices for a certain class
 func (n *StorageNode) DevicesForClass(class *config.Class) []*Device {
 	devices := make([]*Device, 0)
 	for _, device := range n.Devices {
@@ -126,4 +122,15 @@ func (n *StorageNode) DevicesForClass(class *config.Class) []*Device {
 		}
 	}
 	return devices
+}
+
+// String returns a string representation of the node for fmt.Printf
+func (n *StorageNode) String() string {
+	s := fmt.Sprintf("N[%s|%d]: ",
+		n.Metadata.ID,
+		len(n.Devices))
+	for _, device := range n.Devices {
+		s += device.String()
+	}
+	return s + "\n"
 }

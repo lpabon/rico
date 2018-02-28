@@ -20,18 +20,13 @@ import (
 	"fmt"
 )
 
-// Verify returns an error if the device has any missing data
-func (d *Device) Verify() error {
-	if len(d.Metadata.ID) == 0 {
-		return fmt.Errorf("Device metadata id cannot be zero")
+// Verify returns an error if the pool has any missing data
+func (p *Pool) Verify() error {
+	if p.SetSize == 0 {
+		return fmt.Errorf("Size in pool cannot be zero")
 	}
-	if len(d.Class) == 0 {
-		return fmt.Errorf("Device class type cannot be empty")
+	if len(p.Class) == 0 {
+		return fmt.Errorf("Pool class type cannot be empty")
 	}
 	return nil
-}
-
-// String returns a string version of the device. Used to for %v fmt.Print
-func (d *Device) String() string {
-	return fmt.Sprintf("D[%s|%dGi|%d] ", d.Class, d.Size, d.Utilization)
 }

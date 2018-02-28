@@ -57,11 +57,13 @@ func (m *Manager) SetConfig(config *config.Config) {
 	m.config = *config
 }
 
+// Config returns a copy of the current configuration
 func (m *Manager) Config() *config.Config {
 	c := m.config
 	return &c
 }
 
+// Reconcile adds or removes storage from the system
 func (m *Manager) Reconcile() error {
 	return m.do()
 }
@@ -106,7 +108,7 @@ func (m *Manager) addStorage(t *topology.Topology, class *config.Class) error {
 
 	// Determine how many disks we need to add to this node
 	// TODO: NumDisks to be added
-	numDisks, p := node.NumDisks(class)
+	numDisks, p := node.SetSizeForClass(class)
 
 	// Add disks to the node
 	devices := make([]*topology.Device, 0)
