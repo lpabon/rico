@@ -21,19 +21,19 @@ import (
 	"fmt"
 
 	"github.com/libopenstorage/rico/pkg/config"
-	"github.com/libopenstorage/rico/pkg/storageprovider"
+	"github.com/libopenstorage/rico/pkg/topology"
 	"github.com/lpabon/godbc"
 )
 
 // This is for tests only
 
-// Fake is an memory-only implementation of the storageprovider.Interface
+// Fake is an memory-only implementation of the topology.Interface
 type Fake struct {
-	Topology *storageprovider.Topology
+	Topology *topology.Topology
 }
 
 // New returns a new Fake storage implementation
-func New(t *storageprovider.Topology) *Fake {
+func New(t *topology.Topology) *Fake {
 	return &Fake{
 		Topology: t,
 	}
@@ -43,7 +43,7 @@ func New(t *storageprovider.Topology) *Fake {
 func (f *Fake) SetConfig(*config.Config) {}
 
 // GetTopology returns the topology kept in memory
-func (f *Fake) GetTopology() (*storageprovider.Topology, error) {
+func (f *Fake) GetTopology() (*topology.Topology, error) {
 	return f.Topology, nil
 }
 
@@ -59,7 +59,7 @@ func (f *Fake) SetUtilization(
 
 // SetNodeUtilization sets all the devices to a utilization
 func (f *Fake) SetNodeUtilization(
-	node *storageprovider.StorageNode,
+	node *topology.StorageNode,
 	class *config.Class,
 	utilization int,
 ) {
@@ -72,9 +72,9 @@ func (f *Fake) SetNodeUtilization(
 
 // DeviceAdd adds a device to the topology
 func (f *Fake) DeviceAdd(
-	node *storageprovider.StorageNode,
-	pool *storageprovider.Pool,
-	devices []*storageprovider.Device,
+	node *topology.StorageNode,
+	pool *topology.Pool,
+	devices []*topology.Device,
 ) error {
 
 	godbc.Require(pool == nil)
@@ -92,7 +92,7 @@ func (f *Fake) DeviceAdd(
 	return nil
 }
 
-func (f *Fake) NodeAdd(node *storageprovider.StorageNode) error {
+func (f *Fake) NodeAdd(node *topology.StorageNode) error {
 	f.Topology.Cluster.StorageNodes = append(f.Topology.Cluster.StorageNodes, node)
 	return nil
 }
@@ -119,10 +119,10 @@ func (f *Fake) NodeDelete(instanceID string) error {
 
 // DeviceRemove removes a device from the topology
 func (f *Fake) DeviceRemove(
-	node *storageprovider.StorageNode,
-	pool *storageprovider.Pool,
-	device *storageprovider.Device,
-) ([]*storageprovider.Device, error) {
+	node *topology.StorageNode,
+	pool *topology.Pool,
+	device *topology.Device,
+) ([]*topology.Device, error) {
 	found := false
 	for _, sn := range f.Topology.Cluster.StorageNodes {
 		if sn.Metadata.ID == node.Metadata.ID {
@@ -142,5 +142,5 @@ func (f *Fake) DeviceRemove(
 		}
 	}
 	godbc.Ensure(found == true)
-	return []*storageprovider.Device{device}, nil
+	return []*topology.Device{device}, nil
 }

@@ -21,32 +21,14 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/libopenstorage/rico/pkg/cloudprovider"
+	fakecloud "github.com/libopenstorage/rico/pkg/cloudprovider/fake"
 	"github.com/libopenstorage/rico/pkg/config"
 	"github.com/libopenstorage/rico/pkg/inframanager"
-	"github.com/libopenstorage/rico/pkg/storageprovider"
-	"github.com/libopenstorage/rico/pkg/storageprovider/fake"
+	fakestorage "github.com/libopenstorage/rico/pkg/storageprovider/fake"
+	"github.com/libopenstorage/rico/pkg/topology"
 
 	"github.com/abiosoft/ishell"
-	"github.com/pborman/uuid"
 )
-
-type FakeCloud struct{}
-
-func (f *FakeCloud) SetConfig(config *config.Config) {}
-func (f *FakeCloud) DeviceCreate(
-	instanceID string,
-	class *config.Class,
-) (*cloudprovider.Device, error) {
-	return &cloudprovider.Device{
-		ID:   uuid.New(),
-		Path: "nothing",
-		Size: class.DiskSizeGb,
-	}, nil
-}
-func (f *FakeCloud) DeviceDelete(instanceID string, deviceID string) error {
-	return nil
-}
 
 /*
 ca name=small wh=60 wl=10 size=1 max=20 min=10
@@ -55,8 +37,8 @@ ca name=large wh=75 wl=25 size=250 max=10240 min=1024
 */
 
 func main() {
-	fc := &FakeCloud{}
-	fs := fake.New(&storageprovider.Topology{})
+	fc := fakecloud.New()
+	fs := fakestorage.New(&topology.Topology{})
 	class := config.Class{
 		Name:               "gp2",
 		WatermarkHigh:      75,
@@ -84,9 +66,9 @@ func main() {
 				c.Err(fmt.Errorf("node-add <id>"))
 				return
 			}
-			fs.NodeAdd(&storageprovider.StorageNode{
+			fs.NodeAdd(&topology.StorageNode{
 				Name: c.Args[0],
-				Metadata: storageprovider.InstanceMetadata{
+				Metadata: topology.InstanceMetadata{
 					ID: c.Args[0],
 				},
 			})

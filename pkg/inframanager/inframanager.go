@@ -24,6 +24,7 @@ import (
 	"github.com/libopenstorage/rico/pkg/cloudprovider"
 	"github.com/libopenstorage/rico/pkg/config"
 	"github.com/libopenstorage/rico/pkg/storageprovider"
+	"github.com/libopenstorage/rico/pkg/topology"
 )
 
 // Manager is an implementation of inframanager.Interface
@@ -99,7 +100,7 @@ func (m *Manager) do() error {
 	return nil
 }
 
-func (m *Manager) addStorage(t *storageprovider.Topology, class *config.Class) error {
+func (m *Manager) addStorage(t *topology.Topology, class *config.Class) error {
 	// Pick a node
 	node := t.DetermineNodeToAddStorage()
 
@@ -108,7 +109,7 @@ func (m *Manager) addStorage(t *storageprovider.Topology, class *config.Class) e
 	numDisks, p := node.NumDisks(class)
 
 	// Add disks to the node
-	devices := make([]*storageprovider.Device, 0)
+	devices := make([]*topology.Device, 0)
 	for d := 0; d < numDisks; d++ {
 		logrus.Infof("class:%s Creating/attaching storage %d of %d to node:%s",
 			class.Name,
@@ -122,11 +123,11 @@ func (m *Manager) addStorage(t *storageprovider.Topology, class *config.Class) e
 				node.Metadata.ID,
 				err)
 		}
-		devices = append(devices, &storageprovider.Device{
+		devices = append(devices, &topology.Device{
 			Class: class.Name,
 			Path:  device.Path,
 			Size:  device.Size,
-			Metadata: storageprovider.DeviceMetadata{
+			Metadata: topology.DeviceMetadata{
 				ID: device.ID,
 			}})
 	}
@@ -140,7 +141,7 @@ func (m *Manager) addStorage(t *storageprovider.Topology, class *config.Class) e
 	return m.storage.DeviceAdd(node, p, devices)
 }
 
-func (m *Manager) removeStorage(t *storageprovider.Topology, class *config.Class) error {
+func (m *Manager) removeStorage(t *topology.Topology, class *config.Class) error {
 	// Pick a device
 	node, pool, device := t.DetermineStorageToRemove(class)
 
